@@ -53,7 +53,7 @@ textarea::placeholder {
 }
 
 .loading {
-  position: fixed; /* ✅ stick to viewport */
+  position: absolute;
   top: 16px; /* ✅ must include px */
   left: 16px;
 
@@ -68,7 +68,7 @@ textarea::placeholder {
   animation: spinner 0.7s linear infinite;
 
   background: transparent; /* ✅ ensure no box */
-  z-index: 9999; /* always on top */
+  z-index: 999; /* always on top */
 }
 
 body:has(.pos-page) {
@@ -140,12 +140,11 @@ body:has(.receipt-page) {
 /* REMOVE CONTAINER FOR DASHBOARD */
 .home-layout:has(.dashboard) .home-container,
 .home-layout:has(.pos-page) .home-container,
-.home-layout:has(.receipt-page) .home-container,
-.home-layout:has(.loading) .home-container {
+.home-layout:has(.receipt-page) .home-container {
   all: unset;
 }
 
-/* RESPONSIVE */
+/* RESPONSIVE *
 
 @media (max-width: 480px) {
   .home-container {
@@ -452,6 +451,7 @@ body:has(.receipt-page) {
 /* PAGE CONTENT */
 
 .page-content {
+  position: relative;
   padding: 1.5rem;
   background: #ffffff;
   margin: 1rem;
@@ -1179,4 +1179,23 @@ body:has(.receipt-page) {
   display: flex;
   gap: 1rem;
   margin-top: 2rem;
+}
+
+/* =========================
+   CHART
+========================= */
+
+.chart-container {
+  margin-top: 2rem;
+  background: #ffffff;
+  padding: 1rem;
+  border-radius: 0.8rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.chart-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  color: #111827;
 }

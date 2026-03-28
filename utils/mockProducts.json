@@ -1,0 +1,93 @@
+[
+  {
+    "name": "Espresso",
+    "price": 2.5,
+    "quantity": 100,
+    "category": "Beverages"
+  },
+  {
+    "name": "Cappuccino",
+    "price": 3.0,
+    "quantity": 80,
+    "category": "Beverages"
+  },
+  {
+    "name": "Latte",
+    "price": 3.5,
+    "quantity": 60,
+    "category": "Beverages"
+  },
+  {
+    "name": "Americano",
+    "price": 2.0,
+    "quantity": 50,
+    "description": "Espresso with hot water",
+    "category": "Beverages"
+  },
+  {
+    "name": "Chocolate Muffin",
+    "price": 1.5,
+    "quantity": 40,
+    "category": "Snacks"
+  },
+  {
+    "name": "Blueberry Muffin",
+    "price": 1.7,
+    "quantity": 35,
+    "category": "Snacks"
+  },
+  {
+    "name": "Croissant",
+    "price": 2.0,
+    "quantity": 30,
+    "category": "Snacks"
+  },
+  {
+    "name": "Ham Sandwich",
+    "price": 3.5,
+    "quantity": 25,
+    "category": "Snacks"
+  },
+  {
+    "name": "Orange Juice",
+    "price": 2.0,
+    "quantity": 50,
+    "category": "Beverages"
+  },
+  {
+    "name": "Mineral Water",
+    "price": 1.0,
+    "quantity": 100,
+    "category": "Beverages"
+  },
+  {
+    "name": "Cheeseburger",
+    "price": 5.0,
+    "quantity": 40,
+    "category": "Meals"
+  },
+  {
+    "name": "Veggie Burger",
+    "price": 4.5,
+    "quantity": 35,
+    "category": "Meals"
+  },
+  {
+    "name": "French Fries",
+    "price": 2.0,
+    "quantity": 60,
+    "category": "Snacks"
+  },
+  {
+    "name": "Chicken Wrap",
+    "price": 4.0,
+    "quantity": 30,
+    "category": "Meals"
+  },
+  {
+    "name": "Iced Tea",
+    "price": 2.0,
+    "quantity": 70,
+    "category": "Beverages"
+  }
+]

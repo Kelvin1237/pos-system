@@ -1,6 +1,14 @@
-import { Form, redirect, useLoaderData, useNavigation } from "react-router-dom";
+import {
+  Form,
+  redirect,
+  useLoaderData,
+  useNavigation,
+  useRevalidator,
+} from "react-router-dom";
 import customFetch from "../utils/customFetch";
 import { toast } from "react-toastify";
+import { useState } from "react";
+import { Check, X } from "lucide-react";
 
 export const loader = async () => {
   try {
@@ -18,7 +26,7 @@ export const action = async ({ request }) => {
   try {
     await customFetch.post("/products", data);
     toast.success("Product added successfully");
-    return;
+    return null;
   } catch (error) {
     const errorMessage =
       error?.response?.data?.msg ?? error?.response?.data?.error?.[0];
@@ -29,9 +37,104 @@ export const action = async ({ request }) => {
 
 const Products = () => {
   const { products } = useLoaderData();
-
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
+  const revalidator = useRevalidator();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    price: "",
+    quantity: "",
+    category: "",
+  });
+
+  /* =========================
+     OPEN EDIT MODAL
+  ========================= */
+  const handleEdit = async (id) => {
+    try {
+      const { data } = await customFetch.get(`/products/${id}`);
+      const product = data.product;
+
+      setSelectedProductId(id);
+      setFormData({
+        name: product?.name || "",
+        price: product?.price || "",
+        quantity: product?.quantity || "",
+        category: product?.category || "",
+      });
+
+      setIsEditModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load product details");
+    }
+  };
+
+  /* =========================
+     HANDLE INPUT CHANGE
+  ========================= */
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  /* =========================
+     UPDATE PRODUCT
+  ========================= */
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setIsEditing(true);
+    try {
+      await customFetch.patch(`/products/${selectedProductId}`, formData);
+      toast.success("Product updated successfully");
+      setIsEditModalOpen(false);
+      revalidator.revalidate();
+    } catch (error) {
+      const errorMessage =
+        error?.response?.data?.msg ??
+        error?.response?.data?.error?.[0] ??
+        "Failed to update product";
+      toast.error(errorMessage);
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  /* =========================
+     OPEN DELETE MODAL
+  ========================= */
+  const handleOpenDeleteModal = (id) => {
+    setSelectedProductId(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  /* =========================
+     DELETE PRODUCT
+  ========================= */
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await customFetch.delete(`/products/${selectedProductId}`);
+      toast.success("Product deleted successfully");
+      setIsDeleteModalOpen(false);
+      revalidator.revalidate();
+    } catch (error) {
+      const errorMessage =
+        error?.response?.data?.msg ??
+        error?.response?.data?.error?.[0] ??
+        "Failed to delete product";
+      toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="products-page">
@@ -51,7 +154,7 @@ const Products = () => {
           />
 
           <input
-            type="number"
+            type="float"
             name="price"
             placeholder="Price"
             className="form-input dark"
@@ -101,10 +204,18 @@ const Products = () => {
                 <td>${parseFloat(item.price).toFixed(2)}</td>
                 <td>{item.quantity}</td>
                 <td className="actions">
-                  <button className="edit-btn">Edit</button>
                   <button
+                    type="button"
+                    className="edit-btn"
+                    onClick={() => handleEdit(item.id)}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    type="button"
                     className="delete-btn"
-                    onClick={() => handleDelete(item.id)}
+                    onClick={() => handleOpenDeleteModal(item.id)}
                   >
                     Delete
                   </button>
@@ -114,6 +225,134 @@ const Products = () => {
           </tbody>
         </table>
       </div>
+
+      {/* EDIT MODAL */}
+      {isEditModalOpen && (
+        <div
+          className="modal-overlay"
+          onClick={() => setIsEditModalOpen(false)}
+        >
+          <form
+            className="modal-form"
+            onSubmit={handleUpdate}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2>Edit Product</h2>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="modal-close-btn"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="modal-grid">
+                <label htmlFor="name">Product Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  placeholder="Product Name"
+                  className="form-input dark"
+                  onChange={handleChange}
+                />
+                <label htmlFor="price">Price</label>
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  placeholder="Price"
+                  className="form-input dark"
+                  onChange={handleChange}
+                />
+                <label htmlFor="quantity">Quantity</label>
+                <input
+                  type="number"
+                  name="quantity"
+                  value={formData.quantity}
+                  placeholder="Quantity"
+                  className="form-input dark"
+                  onChange={handleChange}
+                />
+                <label htmlFor="category">Category</label>
+                <input
+                  type="text"
+                  name="category"
+                  value={formData.category}
+                  placeholder="Category"
+                  className="form-input dark"
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="submit"
+                className="modal-save-btn"
+                disabled={isEditing}
+              >
+                <Check size={16} />{" "}
+                {isEditing ? "Editing Product..." : "Edit Product"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="modal-cancel-btn"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* DELETE MODAL */}
+      {isDeleteModalOpen && (
+        <div
+          className="modal-overlay"
+          onClick={() => setIsDeleteModalOpen(false)}
+        >
+          <div className="modal-form" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Confirm Delete</h2>
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="modal-close-btn"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p>Are you sure you want to delete this product?</p>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="modal-save-btn"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="modal-cancel-btn"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

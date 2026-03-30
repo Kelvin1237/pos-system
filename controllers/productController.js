@@ -76,7 +76,7 @@ const getSingleProduct = async (req, res) => {
         .json({ msg: `No product found with id ${id}` });
     }
 
-    res.status(StatusCodes.OK).json(product);
+    res.status(StatusCodes.OK).json({ product });
   } catch (error) {
     res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)

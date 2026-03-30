@@ -75,14 +75,6 @@ body:has(.pos-page) {
   overflow: hidden;
 }
 
-body:has(.sales-page) {
-  overflow: hidden;
-}
-
-body:has(.products-page) {
-  overflow: hidden;
-}
-
 body:has(.receipt-page) {
   overflow: hidden;
 }
@@ -678,6 +670,10 @@ body:has(.receipt-page) {
   font-size: 0.75rem;
 }
 
+.edit-btn:hover {
+  opacity: 0.9;
+}
+
 .delete-btn {
   background: #ef4444;
   color: #fff;
@@ -686,6 +682,10 @@ body:has(.receipt-page) {
   border-radius: 0.3rem;
   cursor: pointer;
   font-size: 0.75rem;
+}
+
+.delete-btn:hover {
+  opacity: 0.9;
 }
 
 /* RESPONSIVE FORM */
@@ -1198,4 +1198,127 @@ body:has(.receipt-page) {
   font-weight: 600;
   margin-bottom: 2rem;
   color: #111827;
+}
+
+/* =========================
+   EDIT PRODUCT MODAL
+========================= */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5000;
+  padding: 1rem;
+}
+
+.modal-form {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 0.9rem;
+  padding: 1.2rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  animation: modalFade 0.2s ease;
+}
+
+@keyframes modalFade {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* HEADER */
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.modal-header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.modal-close-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-btn:hover {
+  background: #e5e7eb;
+}
+
+/* BODY */
+
+.modal-body {
+  margin-bottom: 1.2rem;
+}
+
+.modal-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.modal-grid label {
+  font-size: 0.8rem;
+  margin-left: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+/* ACTIONS */
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+}
+
+.modal-save-btn,
+.modal-cancel-btn {
+  padding: 0.7rem 1rem;
+  border-radius: 0.55rem;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.modal-save-btn {
+  background: #8570fe;
+  color: #ffffff;
+}
+
+.modal-save-btn:hover {
+  background: #6b57e0;
+}
+
+.modal-cancel-btn {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.modal-cancel-btn:hover {
+  background: #e5e7eb;
 }

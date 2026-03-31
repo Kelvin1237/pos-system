@@ -770,36 +770,55 @@ body:has(.receipt-page) {
 /* PRODUCT LIST */
 
 .product-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  flex: 1; /* 🔥 takes remaining space */
-  overflow-y: auto; /* 🔥 scrolls independently */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 1rem;
+  flex: 1;
+  overflow-y: auto;
+  align-content: start;
 }
 
-/* PRODUCT ROW */
+/* PRODUCT CARD */
 
 .product-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  padding: 0.6rem;
-  border-radius: 0.5rem;
   background: #f9fafb;
-  font-size: 0.9rem;
+  border-radius: 0.8rem;
+  padding: 1rem;
+  min-height: 170px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* PRODUCT NAME + PRICE */
+
+.product-row span:first-child {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.product-row span:nth-child(2) {
+  font-size: 1rem;
+  color: #6b7280;
+  margin-top: 0.7rem;
 }
 
 /* ADD BUTTON */
 
 .add-btn {
-  padding: 0.3rem 0.6rem;
+  width: 50%;
+  padding: 0.5rem;
   background: var(--primary-500);
   color: #fff;
   border: none;
-  border-radius: 0.4rem;
+  border-radius: 0.5rem;
   cursor: pointer;
-  font-size: 0.75rem;
-  margin-left: 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: auto;
 }
 
 .add-btn:hover {
@@ -1321,4 +1340,50 @@ body:has(.receipt-page) {
 
 .modal-cancel-btn:hover {
   background: #e5e7eb;
+}
+
+/* =========================
+   LOW STOCK ALERT STYLING
+========================= */
+.low-stock-alert {
+  background-color: #fff3cd;
+  border-left: 6px solid #ffecb5;
+  padding: 1rem 1.5rem;
+  margin: 1rem 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.low-stock-heading {
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #856404;
+}
+
+.low-stock-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.low-stock-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #ffeeba;
+  font-weight: 500;
+  color: #856404;
+}
+
+.low-stock-item:last-child {
+  border-bottom: none;
+}
+
+.product-name {
+  flex: 1;
+}
+
+.product-qty {
+  font-weight: 700;
 }

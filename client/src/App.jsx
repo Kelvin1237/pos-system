@@ -25,6 +25,7 @@ import { loader as CashierSalesLoader } from "./pages/CashierSales";
 import { loader as salesLoader } from "./pages/Sales";
 import { loader as productsLoader } from "./pages/Products";
 import { loader as usersLoader } from "./pages/Users";
+import { loader as posLoader } from "./pages/POS";
 
 const router = createBrowserRouter([
   {
@@ -49,6 +50,7 @@ const router = createBrowserRouter([
           {
             path: "pos",
             element: <POS />,
+            loader: posLoader,
           },
           {
             path: "receipt",

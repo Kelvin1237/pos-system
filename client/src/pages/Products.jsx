@@ -13,9 +13,10 @@ import { Check, X } from "lucide-react";
 export const loader = async () => {
   try {
     const { data } = await customFetch.get("/products");
-    return data;
+    return data || { products: [] };
   } catch (error) {
-    return redirect("/dashboard/admin");
+    console.error("Failed to load products data:", error);
+    return { products: [] };
   }
 };
 
@@ -29,14 +30,16 @@ export const action = async ({ request }) => {
     return null;
   } catch (error) {
     const errorMessage =
-      error?.response?.data?.msg ?? error?.response?.data?.error?.[0];
+      error?.response?.data?.msg ??
+      error?.response?.data?.error?.[0] ??
+      "Failed to add product";
     toast.error(errorMessage);
     return error;
   }
 };
 
 const Products = () => {
-  const { products } = useLoaderData();
+  const { products = [] } = useLoaderData() || {};
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
   const revalidator = useRevalidator();
@@ -59,16 +62,18 @@ const Products = () => {
      OPEN EDIT MODAL
   ========================= */
   const handleEdit = async (id) => {
+    if (!id) return;
+
     try {
       const { data } = await customFetch.get(`/products/${id}`);
-      const product = data.product;
+      const product = data?.product || {};
 
       setSelectedProductId(id);
       setFormData({
-        name: product?.name || "",
-        price: product?.price || "",
-        quantity: product?.quantity || "",
-        category: product?.category || "",
+        name: product.name || "",
+        price: product.price || "",
+        quantity: product.quantity || "",
+        category: product.category || "",
       });
 
       setIsEditModalOpen(true);
@@ -90,6 +95,8 @@ const Products = () => {
   ========================= */
   const handleUpdate = async (e) => {
     e.preventDefault();
+    if (!selectedProductId) return;
+
     setIsEditing(true);
     try {
       await customFetch.patch(`/products/${selectedProductId}`, formData);
@@ -111,6 +118,7 @@ const Products = () => {
      OPEN DELETE MODAL
   ========================= */
   const handleOpenDeleteModal = (id) => {
+    if (!id) return;
     setSelectedProductId(id);
     setIsDeleteModalOpen(true);
   };
@@ -119,6 +127,8 @@ const Products = () => {
      DELETE PRODUCT
   ========================= */
   const handleDelete = async () => {
+    if (!selectedProductId) return;
+
     setIsDeleting(true);
     try {
       await customFetch.delete(`/products/${selectedProductId}`);
@@ -197,31 +207,44 @@ const Products = () => {
           </thead>
 
           <tbody>
-            {products.map((item) => (
-              <tr key={item.id}>
-                <td>{item.name}</td>
-                <td>{item.category}</td>
-                <td>${parseFloat(item.price).toFixed(2)}</td>
-                <td>{item.quantity}</td>
-                <td className="actions">
-                  <button
-                    type="button"
-                    className="edit-btn"
-                    onClick={() => handleEdit(item.id)}
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    type="button"
-                    className="delete-btn"
-                    onClick={() => handleOpenDeleteModal(item.id)}
-                  >
-                    Delete
-                  </button>
+            {!Array.isArray(products) || products.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="empty">
+                  No products available
                 </td>
               </tr>
-            ))}
+            ) : (
+              products.map((item) => (
+                <tr key={item?.id || Math.random()}>
+                  <td>{item?.name ?? "Unnamed"}</td>
+                  <td>{item?.category ?? "-"}</td>
+                  <td>
+                    ₵
+                    {item?.price != null
+                      ? parseFloat(item.price).toFixed(2)
+                      : "0.00"}
+                  </td>
+                  <td>{item?.quantity ?? 0}</td>
+                  <td className="actions">
+                    <button
+                      type="button"
+                      className="edit-btn"
+                      onClick={() => handleEdit(item?.id)}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      className="delete-btn"
+                      onClick={() => handleOpenDeleteModal(item?.id)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

@@ -7,12 +7,14 @@ export const loader = async () => {
     const { data } = await customFetch.get("/sales");
     return data;
   } catch (error) {
+    console.error("Failed to load sales data:", error);
     return redirect("/dashboard/pos");
   }
 };
 
 const Sales = () => {
-  const { sales } = useLoaderData();
+  const data = useLoaderData();
+  const sales = Array.isArray(data?.sales) ? data.sales : [];
 
   return (
     <div className="sales-page">
@@ -31,26 +33,43 @@ const Sales = () => {
           </thead>
 
           <tbody>
-            {sales.length === 0 && (
+            {sales.length === 0 ? (
               <tr>
                 <td colSpan="5" className="empty">
                   No sales yet
                 </td>
               </tr>
+            ) : (
+              sales.map((sale) => {
+                const formattedDate = sale?.createdAt
+                  ? dayjs(sale.createdAt).format("YYYY-MM-DD")
+                  : "N/A";
+                return (
+                  <tr key={sale?.id || Math.random()}>
+                    <td>{formattedDate}</td>
+                    <td>
+                      ₵
+                      {sale?.totalAmount != null
+                        ? parseFloat(sale.totalAmount).toFixed(2)
+                        : "0.00"}
+                    </td>
+                    <td>{sale?.paymentMethod || "N/A"}</td>
+                    <td>
+                      ₵
+                      {sale?.cashGiven != null
+                        ? parseFloat(sale.cashGiven).toFixed(2)
+                        : "0.00"}
+                    </td>
+                    <td>
+                      ₵
+                      {sale?.change != null
+                        ? parseFloat(sale.change).toFixed(2)
+                        : "0.00"}
+                    </td>
+                  </tr>
+                );
+              })
             )}
-
-            {sales.map((sale) => {
-              const formattedDate = dayjs(sale.createdAt).format("YYYY-MM-DD");
-              return (
-                <tr key={sale.id}>
-                  <td>{formattedDate}</td>
-                  <td>${parseFloat(sale.totalAmount).toFixed(2)}</td>
-                  <td>{sale.paymentMethod}</td>
-                  <td>${parseFloat(sale.cashGiven).toFixed(2)}</td>
-                  <td>${parseFloat(sale.change).toFixed(2)}</td>
-                </tr>
-              );
-            })}
           </tbody>
         </table>
       </div>

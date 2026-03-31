@@ -12,6 +12,14 @@ const createProduct = async (req, res) => {
         .json({ msg: "Name, price, quantity, and category are required" });
     }
 
+    const existingProduct = await Product.findOne({ where: { name } });
+
+    if (existingProduct) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ msg: `Product "${name}" already exists` });
+    }
+
     const newProduct = await Product.create({
       name,
       price: parseFloat(price),

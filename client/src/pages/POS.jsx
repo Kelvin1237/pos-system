@@ -1,76 +1,125 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLoaderData } from "react-router-dom";
+import customFetch from "../utils/customFetch";
+import { toast } from "react-toastify";
 
-const mockProducts = [
-  { id: 1, name: "Rice", price: 20 },
-  { id: 2, name: "Milk", price: 15 },
-  { id: 3, name: "Bread", price: 10 },
-  { id: 4, name: "Sugar", price: 8 },
-];
+export const loader = async () => {
+  try {
+    const { data } = await customFetch.get("/products");
+    return data || { products: [] };
+  } catch (error) {
+    console.error("Failed to load products data:", error);
+    return { products: [] };
+  }
+};
 
 const POS = () => {
+  const { products = [] } = useLoaderData() || {};
+
   const [cart, setCart] = useState([]);
   const [cashGiven, setCashGiven] = useState("");
+  const [search, setSearch] = useState("");
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const navigate = useNavigate();
 
-  const addToCart = (product) => {
-    const existing = cart.find((item) => item.id === product.id);
+  /* =========================
+     FILTERED PRODUCTS
+  ========================= */
+  const filteredProducts = Array.isArray(products)
+    ? products.filter((product) =>
+        product?.name?.toLowerCase().includes(search.toLowerCase()),
+      )
+    : [];
 
-    if (existing) {
-      setCart(
-        cart.map((item) =>
+  /* =========================
+     CART FUNCTIONS
+  ========================= */
+  const addToCart = (product) => {
+    if (!product?.id) return;
+
+    setCart((prevCart) => {
+      const existing = prevCart.find((item) => item.id === product.id);
+
+      if (existing) {
+        return prevCart.map((item) =>
           item.id === product.id ? { ...item, qty: item.qty + 1 } : item,
-        ),
-      );
-    } else {
-      setCart([...cart, { ...product, qty: 1 }]);
-    }
+        );
+      }
+
+      return [...prevCart, { ...product, qty: 1 }];
+    });
   };
 
   const increaseQty = (id) => {
-    setCart(
-      cart.map((item) =>
+    setCart((prevCart) =>
+      prevCart.map((item) =>
         item.id === id ? { ...item, qty: item.qty + 1 } : item,
       ),
     );
   };
 
   const decreaseQty = (id) => {
-    setCart(
-      cart
+    setCart((prevCart) =>
+      prevCart
         .map((item) => (item.id === id ? { ...item, qty: item.qty - 1 } : item))
-        .filter((item) => item.qty > 0), // Remove item if qty goes to 0
+        .filter((item) => item.qty > 0),
     );
   };
 
-  const total = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
-  const change = cashGiven ? cashGiven - total : 0;
+  /* =========================
+     CALCULATIONS
+  ========================= */
+  const total = cart.reduce(
+    (acc, item) => acc + (Number(item.price) || 0) * (item.qty || 0),
+    0,
+  );
 
-  const handleCheckout = () => {
-    if (!cart.length) return alert("Cart is empty!");
-    if (!cashGiven || cashGiven < total) return alert("Insufficient cash!");
+  const change = cashGiven ? Number(cashGiven) - total : 0;
 
-    const saleData = {
-      id: Date.now(), // unique sale ID
-      date: new Date().toLocaleString(),
-      cashier: "John Doe",
-      items: cart,
-      subtotal: total,
-      totalAmount: total,
-      cashGiven: Number(cashGiven),
-      change: Number(cashGiven) - total,
-    };
+  /* =========================
+     CHECKOUT
+  ========================= */
+  const handleCheckout = async () => {
+    if (!cart.length) {
+      toast.error("Cart is empty!");
+      return;
+    }
 
-    // Save sale data in localStorage (or context / backend)
-    localStorage.setItem("latestSale", JSON.stringify(saleData));
+    if (!cashGiven || Number(cashGiven) < total) {
+      toast.error("Insufficient cash!");
+      return;
+    }
 
-    // Clear cart and cash input
-    setCart([]);
-    setCashGiven("");
+    try {
+      setIsCheckingOut(true);
 
-    // Redirect to receipt page
-    navigate("/dashboard/receipt");
+      const saleData = {
+        cashGiven: Number(cashGiven),
+        items: cart.map((item) => ({
+          productId: item?.id,
+          quantity: item?.qty,
+        })),
+      };
+
+      await customFetch.post("/sales", saleData);
+
+      toast.success("Sale completed successfully");
+
+      setCart([]);
+      setCashGiven("");
+
+      navigate("/dashboard/receipt");
+    } catch (error) {
+      const errorMessage =
+        error?.response?.data?.msg ??
+        error?.response?.data?.error ??
+        "Checkout failed";
+
+      toast.error(errorMessage);
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   return (
@@ -82,18 +131,33 @@ const POS = () => {
             type="text"
             placeholder="Search products..."
             className="pos-search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
 
           <div className="product-list">
-            {mockProducts.map((product) => (
-              <div key={product.id} className="product-row">
-                <span>{product.name}</span>
-                <span>${product.price}</span>
-                <button className="add-btn" onClick={() => addToCart(product)}>
-                  Add
-                </button>
-              </div>
-            ))}
+            {!Array.isArray(filteredProducts) ||
+            filteredProducts.length === 0 ? (
+              <p className="empty">No products found</p>
+            ) : (
+              filteredProducts.map((product) => (
+                <div key={product?.id || Math.random()} className="product-row">
+                  <span>{product?.name ?? "Unnamed"}</span>
+                  <span>
+                    ₵
+                    {product?.price != null
+                      ? parseFloat(product.price).toFixed(2)
+                      : "0.00"}
+                  </span>
+                  <button
+                    className="add-btn"
+                    onClick={() => addToCart(product)}
+                  >
+                    Add
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -102,17 +166,16 @@ const POS = () => {
           <h3 className="cart-title">Cart</h3>
 
           <div className="cart-items">
-            {cart.length === 0 && <p className="empty">No items yet</p>}
+            {!cart.length && <p className="empty">No items yet</p>}
 
             {cart.map((item) => (
-              <div key={item.id} className="cart-row">
-                <span>{item.name}</span>
+              <div key={item?.id || Math.random()} className="cart-row">
+                <span>{item?.name ?? "Unnamed"}</span>
 
-                {/* Quantity Controls */}
                 <div className="qty-controls">
-                  <button onClick={() => decreaseQty(item.id)}>-</button>
-                  <span>{item.qty}</span>
-                  <button onClick={() => increaseQty(item.id)}>+</button>
+                  <button onClick={() => decreaseQty(item?.id)}> - </button>
+                  <span>{item?.qty || 0}</span>
+                  <button onClick={() => increaseQty(item?.id)}> + </button>
                 </div>
 
                 <span
@@ -122,7 +185,10 @@ const POS = () => {
                     marginLeft: "1rem",
                   }}
                 >
-                  ${item.price * item.qty}
+                  ₵
+                  {item?.price != null && item?.qty != null
+                    ? (item.price * item.qty).toFixed(2)
+                    : "0.00"}
                 </span>
               </div>
             ))}
@@ -131,7 +197,7 @@ const POS = () => {
           <div className="cart-summary">
             <div className="summary-row">
               <span>Total</span>
-              <span>${total}</span>
+              <span>₵{total.toFixed(2)}</span>
             </div>
 
             <input
@@ -144,11 +210,15 @@ const POS = () => {
 
             <div className="summary-row">
               <span>Change</span>
-              <span>${change}</span>
+              <span>₵{change.toFixed(2)}</span>
             </div>
 
-            <button className="checkout-btn" onClick={handleCheckout}>
-              Checkout
+            <button
+              className="checkout-btn"
+              onClick={handleCheckout}
+              disabled={isCheckingOut}
+            >
+              {isCheckingOut ? "Processing..." : "Checkout"}
             </button>
           </div>
         </div>

@@ -5,14 +5,15 @@ import dayjs from "dayjs";
 export const loader = async () => {
   try {
     const { data } = await customFetch.get("/sales/my-sales");
-    return data;
+    return data || { sales: [] };
   } catch (error) {
-    return redirect("/dashboard/pos");
+    console.error("Failed to load sales data:", error);
+    return { sales: [] };
   }
 };
 
 const CashierSales = () => {
-  const { sales } = useLoaderData();
+  const { sales = [] } = useLoaderData() || {};
 
   return (
     <div className="sales-page">
@@ -31,7 +32,7 @@ const CashierSales = () => {
           </thead>
 
           <tbody>
-            {sales.length === 0 && (
+            {(!Array.isArray(sales) || sales.length === 0) && (
               <tr>
                 <td colSpan="5" className="empty">
                   No sales yet
@@ -39,18 +40,36 @@ const CashierSales = () => {
               </tr>
             )}
 
-            {sales.map((sale) => {
-              const formattedDate = dayjs(sale.createdAt).format("YYYY-MM-DD");
-              return (
-                <tr key={sale.id}>
-                  <td>{formattedDate}</td>
-                  <td>${parseFloat(sale.totalAmount).toFixed(2)}</td>
-                  <td>{sale.paymentMethod}</td>
-                  <td>${parseFloat(sale.cashGiven).toFixed(2)}</td>
-                  <td>${parseFloat(sale.change).toFixed(2)}</td>
-                </tr>
-              );
-            })}
+            {Array.isArray(sales) &&
+              sales.map((sale) => {
+                const formattedDate = sale?.createdAt
+                  ? dayjs(sale.createdAt).format("YYYY-MM-DD")
+                  : "N/A";
+                return (
+                  <tr key={sale?.id || sale?._id}>
+                    <td>{formattedDate}</td>
+                    <td>
+                      ₵
+                      {sale?.totalAmount != null
+                        ? parseFloat(sale.totalAmount).toFixed(2)
+                        : "0.00"}
+                    </td>
+                    <td>{sale?.paymentMethod ?? "N/A"}</td>
+                    <td>
+                      ₵
+                      {sale?.cashGiven != null
+                        ? parseFloat(sale.cashGiven).toFixed(2)
+                        : "0.00"}
+                    </td>
+                    <td>
+                      ₵
+                      {sale?.change != null
+                        ? parseFloat(sale.change).toFixed(2)
+                        : "0.00"}
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>

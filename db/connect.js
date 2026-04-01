@@ -8,9 +8,6 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
 
 // FOR SUPABASE CONNECTION ONLY
 
-// USE IN .env
-// DATABASE_URL=postgresql://postgres.rwucaemgfcgewoikllpn:[YOUR-PASSWORD]@aws-1-eu-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true
-
 // const sequelize = new Sequelize(process.env.DATABASE_URL, {
 //   dialect: "postgres",
 //   dialectOptions: {

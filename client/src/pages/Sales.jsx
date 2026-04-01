@@ -24,6 +24,7 @@ const Sales = () => {
         <table className="sales-table">
           <thead>
             <tr>
+              <th>Reference</th>
               <th>Date</th>
               <th>Total</th>
               <th>Payment</th>
@@ -46,6 +47,11 @@ const Sales = () => {
                   : "N/A";
                 return (
                   <tr key={sale?.id || Math.random()}>
+                    <td>
+                      {sale?.paymentMethod === "CASH"
+                        ? "N/A"
+                        : sale?.paymentReference}
+                    </td>
                     <td>{formattedDate}</td>
                     <td>
                       ₵

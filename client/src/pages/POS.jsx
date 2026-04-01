@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLoaderData } from "react-router-dom";
 import customFetch from "../utils/customFetch";
 import { toast } from "react-toastify";
+import PaystackPop from "@paystack/inline-js";
 
 export const loader = async () => {
   try {
@@ -18,6 +19,7 @@ const POS = () => {
 
   const [cart, setCart] = useState([]);
   const [cashGiven, setCashGiven] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [search, setSearch] = useState("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
@@ -75,7 +77,8 @@ const POS = () => {
     0,
   );
 
-  const change = cashGiven ? Number(cashGiven) - total : 0;
+  const change =
+    paymentMethod === "CASH" && cashGiven ? Number(cashGiven) - total : 0;
 
   /* =========================
      CHECKOUT
@@ -86,40 +89,85 @@ const POS = () => {
       return;
     }
 
-    if (!cashGiven || Number(cashGiven) < total) {
-      toast.error("Insufficient cash!");
+    // CASH FLOW
+    if (paymentMethod === "CASH") {
+      if (!cashGiven || Number(cashGiven) < total) {
+        toast.error("Insufficient cash!");
+        return;
+      }
+
+      try {
+        setIsCheckingOut(true);
+
+        const saleData = {
+          paymentMethod,
+          cashGiven: Number(cashGiven),
+          items: cart.map((item) => ({
+            productId: item.id,
+            quantity: item.qty,
+          })),
+        };
+
+        await customFetch.post("/sales", saleData);
+
+        toast.success("Sale completed successfully");
+        setCart([]);
+        setCashGiven("");
+        navigate("/dashboard/receipt");
+      } catch (error) {
+        toast.error(error?.response?.data?.msg || "Checkout failed");
+      } finally {
+        setIsCheckingOut(false);
+      }
+
       return;
     }
 
-    try {
-      setIsCheckingOut(true);
+    // PAYSTACK FLOW
+    const paystack = new PaystackPop();
 
-      const saleData = {
-        cashGiven: Number(cashGiven),
-        items: cart.map((item) => ({
-          productId: item?.id,
-          quantity: item?.qty,
-        })),
-      };
+    paystack.newTransaction({
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+      email: "customer@test.com",
+      amount: total * 100, // pesewas
+      currency: "GHS",
+      channels: paymentMethod === "MOBILE MONEY" ? ["mobile_money"] : ["card"],
 
-      await customFetch.post("/sales", saleData);
+      onSuccess: async (transaction) => {
+        try {
+          setIsCheckingOut(true);
 
-      toast.success("Sale completed successfully");
+          const saleData = {
+            paymentMethod,
+            paymentReference: transaction.reference,
+            items: cart.map((item) => ({
+              productId: item.id,
+              quantity: item.qty,
+            })),
+          };
 
-      setCart([]);
-      setCashGiven("");
+          await customFetch.post("/sales/verify-paystack", saleData);
 
-      navigate("/dashboard/receipt");
-    } catch (error) {
-      const errorMessage =
-        error?.response?.data?.msg ??
-        error?.response?.data?.error ??
-        "Checkout failed";
+          toast.success("Payment successful");
+          setCart([]);
+          navigate("/dashboard/receipt");
+        } catch (error) {
+          toast.error(
+            error?.response?.data?.msg || "Payment verification failed",
+          );
+        } finally {
+          setIsCheckingOut(false);
+        }
+      },
 
-      toast.error(errorMessage);
-    } finally {
-      setIsCheckingOut(false);
-    }
+      onCancel: () => {
+        toast.info("Payment cancelled");
+      },
+
+      onError: (error) => {
+        toast.error(error.message || "Payment failed");
+      },
+    });
   };
 
   return (
@@ -141,7 +189,7 @@ const POS = () => {
               <p className="empty">No products found</p>
             ) : (
               filteredProducts.map((product) => (
-                <div key={product?.id || Math.random()} className="product-row">
+                <div key={product?.id} className="product-row">
                   <span>{product?.name ?? "Unnamed"}</span>
                   <span>
                     ₵
@@ -169,13 +217,13 @@ const POS = () => {
             {!cart.length && <p className="empty">No items yet</p>}
 
             {cart.map((item) => (
-              <div key={item?.id || Math.random()} className="cart-row">
+              <div key={item?.id} className="cart-row">
                 <span>{item?.name ?? "Unnamed"}</span>
 
                 <div className="qty-controls">
-                  <button onClick={() => decreaseQty(item?.id)}> - </button>
+                  <button onClick={() => decreaseQty(item?.id)}>-</button>
                   <span>{item?.qty || 0}</span>
-                  <button onClick={() => increaseQty(item?.id)}> + </button>
+                  <button onClick={() => increaseQty(item?.id)}>+</button>
                 </div>
 
                 <span
@@ -200,18 +248,37 @@ const POS = () => {
               <span>₵{total.toFixed(2)}</span>
             </div>
 
-            <input
-              type="number"
-              placeholder="Cash given"
-              value={cashGiven}
-              onChange={(e) => setCashGiven(e.target.value)}
-              className="cash-input"
-            />
-
-            <div className="summary-row">
-              <span>Change</span>
-              <span>₵{change.toFixed(2)}</span>
+            {/* PAYMENT METHOD */}
+            <div className="payment-method-wrapper">
+              <label className="payment-label">Payment Method</label>
+              <select
+                className="payment-select"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                <option value="CASH">Cash</option>
+                <option value="MOBILE MONEY">Mobile Money</option>
+                <option value="CREDIT CARD">Credit Card</option>
+              </select>
             </div>
+
+            {/* CASH INPUT ONLY FOR CASH */}
+            {paymentMethod === "CASH" && (
+              <>
+                <input
+                  type="number"
+                  placeholder="Cash given"
+                  value={cashGiven}
+                  onChange={(e) => setCashGiven(e.target.value)}
+                  className="cash-input"
+                />
+
+                <div className="summary-row">
+                  <span>Change</span>
+                  <span>₵{change.toFixed(2)}</span>
+                </div>
+              </>
+            )}
 
             <button
               className="checkout-btn"

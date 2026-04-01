@@ -23,6 +23,7 @@ const CashierSales = () => {
         <table className="sales-table">
           <thead>
             <tr>
+              <th>Reference</th>
               <th>Date</th>
               <th>Total</th>
               <th>Payment</th>
@@ -47,6 +48,11 @@ const CashierSales = () => {
                   : "N/A";
                 return (
                   <tr key={sale?.id || sale?._id}>
+                    <td>
+                      {sale?.paymentMethod === "CASH"
+                        ? "N/A"
+                        : sale?.paymentReference}
+                    </td>
                     <td>{formattedDate}</td>
                     <td>
                       ₵

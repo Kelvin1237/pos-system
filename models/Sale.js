@@ -14,7 +14,7 @@ const Sale = sequelize.define("Sale", {
   },
 
   paymentMethod: {
-    type: DataTypes.ENUM("CASH"),
+    type: DataTypes.ENUM("CASH", "MOBILE MONEY", "CREDIT CARD"),
     defaultValue: "CASH",
   },
 
@@ -24,6 +24,11 @@ const Sale = sequelize.define("Sale", {
 
   change: {
     type: DataTypes.FLOAT,
+  },
+
+  paymentReference: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
 
   createdBy: {

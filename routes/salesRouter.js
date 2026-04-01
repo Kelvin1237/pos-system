@@ -11,13 +11,17 @@ const {
   getAllSales,
   getSaleById,
   getAllSalesMade,
+  verifyPaystackPayment,
 } = require("../controllers/salesController");
 
 router
   .route("/")
   .post(authenticateUser, createSale)
-  .get(authenticateUser, authorizePermissions("ADMIN"), getAllSales)
-router.route("/my-sales").get(authenticateUser, authorizePermissions("CASHIER"), getAllSalesMade);
+  .get(authenticateUser, authorizePermissions("ADMIN"), getAllSales);
+router
+  .route("/my-sales")
+  .get(authenticateUser, authorizePermissions("CASHIER"), getAllSalesMade);
+router.route("/verify-paystack").post(authenticateUser, verifyPaystackPayment);
 
 router.route("/:id").get(authenticateUser, getSaleById);
 

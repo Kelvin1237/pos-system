@@ -67,6 +67,12 @@ const Receipt = () => {
 
         <p>Cashier: {user?.fullName || "Unknown"}</p>
 
+        <p>Payment Method: {sale?.paymentMethod || "Unknown"}</p>
+
+        {sale?.paymentMethod !== "CASH" && sale?.paymentReference && (
+          <p>Payment Reference: {sale.paymentReference}</p>
+        )}
+
         <table>
           <thead>
             <tr>
@@ -114,7 +120,7 @@ const Receipt = () => {
             : "0.00"}
         </p>
         <p>
-          Cash Given: ₵
+          {sale?.paymentMethod === "CASH" ? "Cash Given" : "Amount Paid"}: ₵
           {sale?.cashGiven != null ? Number(sale.cashGiven).toFixed(2) : "0.00"}
         </p>
         <p>

@@ -4,18 +4,28 @@ import customFetch from "../utils/customFetch";
 import { toast } from "react-toastify";
 import PaystackPop from "@paystack/inline-js";
 
+/* =========================
+   LOADER TO FETCH PRODUCTS & CUSTOMERS
+========================= */
 export const loader = async () => {
   try {
-    const { data } = await customFetch.get("/products");
-    return data || { products: [] };
+    const [productsRes, customersRes] = await Promise.all([
+      customFetch.get("/products"),
+      customFetch.get("/customers"),
+    ]);
+
+    return {
+      products: productsRes.data?.products || [],
+      customers: customersRes.data?.customers || [],
+    };
   } catch (error) {
-    console.error("Failed to load products data:", error);
-    return { products: [] };
+    console.error("Failed to load products or customers:", error);
+    return { products: [], customers: [] };
   }
 };
 
 const POS = () => {
-  const { products = [] } = useLoaderData() || {};
+  const { products = [], customers = [] } = useLoaderData() || {};
 
   const [cart, setCart] = useState([]);
   const [cashGiven, setCashGiven] = useState("");
@@ -23,11 +33,16 @@ const POS = () => {
   const [search, setSearch] = useState("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
+  // ===== Customer selection states =====
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerResults, setCustomerResults] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+
   const navigate = useNavigate();
 
   /* =========================
      FILTERED PRODUCTS
-  ========================= */
+  ========================== */
   const filteredProducts = Array.isArray(products)
     ? products.filter((product) =>
         product?.name?.toLowerCase().includes(search.toLowerCase()),
@@ -36,7 +51,7 @@ const POS = () => {
 
   /* =========================
      CART FUNCTIONS
-  ========================= */
+  ========================== */
   const addToCart = (product) => {
     if (!product?.id) return;
 
@@ -71,7 +86,7 @@ const POS = () => {
 
   /* =========================
      CALCULATIONS
-  ========================= */
+  ========================== */
   const total = cart.reduce(
     (acc, item) => acc + (Number(item.price) || 0) * (item.qty || 0),
     0,
@@ -81,13 +96,40 @@ const POS = () => {
     paymentMethod === "CASH" && cashGiven ? Number(cashGiven) - total : 0;
 
   /* =========================
+     CUSTOMER SEARCH (frontend)
+  ========================== */
+  const searchCustomers = (query) => {
+    if (!query) {
+      setCustomerResults([]);
+      return;
+    }
+
+    const filtered = customers.filter(
+      (c) =>
+        c.fullName.toLowerCase().includes(query.toLowerCase()) ||
+        (c.phone || "").includes(query),
+    );
+
+    setCustomerResults(filtered);
+  };
+
+  /* =========================
      CHECKOUT
-  ========================= */
+  ========================== */
   const handleCheckout = async () => {
     if (!cart.length) {
       toast.error("Cart is empty!");
       return;
     }
+
+    const saleData = {
+      paymentMethod,
+      items: cart.map((item) => ({
+        productId: item.id,
+        quantity: item.qty,
+      })),
+      customerId: selectedCustomer?.id || null,
+    };
 
     // CASH FLOW
     if (paymentMethod === "CASH") {
@@ -95,61 +137,46 @@ const POS = () => {
         toast.error("Insufficient cash!");
         return;
       }
+      saleData.cashGiven = Number(cashGiven);
 
       try {
         setIsCheckingOut(true);
-
-        const saleData = {
-          paymentMethod,
-          cashGiven: Number(cashGiven),
-          items: cart.map((item) => ({
-            productId: item.id,
-            quantity: item.qty,
-          })),
-        };
-
         await customFetch.post("/sales", saleData);
 
         toast.success("Sale completed successfully");
         setCart([]);
         setCashGiven("");
+        setSelectedCustomer(null);
+        setCustomerSearch("");
         navigate("/dashboard/receipt");
       } catch (error) {
         toast.error(error?.response?.data?.msg || "Checkout failed");
       } finally {
         setIsCheckingOut(false);
       }
-
       return;
     }
 
     // PAYSTACK FLOW
     const paystack = new PaystackPop();
-
     paystack.newTransaction({
       key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
       email: "customer@test.com",
-      amount: total * 100, // pesewas
+      amount: total * 100,
       currency: "GHS",
       channels: paymentMethod === "MOBILE MONEY" ? ["mobile_money"] : ["card"],
 
       onSuccess: async (transaction) => {
         try {
           setIsCheckingOut(true);
-
-          const saleData = {
-            paymentMethod,
-            paymentReference: transaction.reference,
-            items: cart.map((item) => ({
-              productId: item.id,
-              quantity: item.qty,
-            })),
-          };
+          saleData.paymentReference = transaction.reference;
 
           await customFetch.post("/sales/verify-paystack", saleData);
 
           toast.success("Payment successful");
           setCart([]);
+          setSelectedCustomer(null);
+          setCustomerSearch("");
           navigate("/dashboard/receipt");
         } catch (error) {
           toast.error(
@@ -213,9 +240,48 @@ const POS = () => {
         <div className="pos-right">
           <h3 className="cart-title">Cart</h3>
 
+          {/* CUSTOMER SELECTION */}
+          <div className="customer-select-wrapper">
+            <label className="payment-label">Select Customer (optional)</label>
+            <input
+              type="text"
+              placeholder="Search customer by name or phone..."
+              value={customerSearch}
+              onChange={(e) => {
+                setCustomerSearch(e.target.value);
+                searchCustomers(e.target.value);
+              }}
+              className="customer-search-input"
+            />
+            {customerResults.length > 0 && (
+              <div className="customer-results">
+                {customerResults.map((customer) => (
+                  <div
+                    key={customer.id}
+                    className="customer-result-item"
+                    onClick={() => {
+                      setSelectedCustomer(customer);
+                      setCustomerSearch(customer.fullName);
+                      setCustomerResults([]);
+                    }}
+                  >
+                    {customer.fullName} ({customer.phone || "N/A"}) -{" "}
+                    {customer.loyaltyPoints || 0} pts
+                  </div>
+                ))}
+              </div>
+            )}
+            {selectedCustomer && (
+              <p className="selected-customer">
+                Selected: {selectedCustomer.fullName} -{" "}
+                {selectedCustomer.loyaltyPoints || 0} pts{" "}
+                <button onClick={() => setSelectedCustomer(null)}>x</button>
+              </p>
+            )}
+          </div>
+
           <div className="cart-items">
             {!cart.length && <p className="empty">No items yet</p>}
-
             {cart.map((item) => (
               <div key={item?.id} className="cart-row">
                 <span>{item?.name ?? "Unnamed"}</span>
@@ -272,7 +338,6 @@ const POS = () => {
                   onChange={(e) => setCashGiven(e.target.value)}
                   className="cash-input"
                 />
-
                 <div className="summary-row">
                   <span>Change</span>
                   <span>₵{change.toFixed(2)}</span>

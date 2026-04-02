@@ -1,6 +1,7 @@
 const { StatusCodes } = require("http-status-codes");
 const axios = require("axios");
-const { Sale, SalesItem, Product } = require("../models/index");
+const { Sale, SalesItem, Product, Customer } = require("../models/index");
+const { addLoyaltyPoints } = require("./customerController");
 
 /* =========================
    REUSABLE SALE PROCESSOR
@@ -50,6 +51,7 @@ const createSale = async (req, res) => {
     cashGiven,
     paymentMethod = "CASH",
     paymentReference = null,
+    customerId = null,
   } = req.body;
 
   if (!items || items.length === 0) {
@@ -116,6 +118,7 @@ const createSale = async (req, res) => {
       cashGiven: paymentMethod === "CASH" ? cashGiven : totalAmount,
       change,
       paymentReference,
+      customerId,
     });
 
     /* =========================
@@ -137,6 +140,13 @@ const createSale = async (req, res) => {
 
     await SalesItem.bulkCreate(itemsToSave);
 
+    /* =========================
+   ADD LOYALTY POINTS
+========================= */
+    if (customerId) {
+      await addLoyaltyPoints(customerId, totalAmount);
+    }
+
     res.status(StatusCodes.CREATED).json({
       msg: "Sale successful",
       sale,
@@ -152,7 +162,12 @@ const createSale = async (req, res) => {
    PAYSTACK VERIFY SALE
 ========================= */
 const verifyPaystackPayment = async (req, res) => {
-  const { paymentReference, items, paymentMethod } = req.body;
+  const {
+    paymentReference,
+    items,
+    paymentMethod,
+    customerId = null,
+  } = req.body;
 
   if (!items || items.length === 0) {
     return res.status(StatusCodes.BAD_REQUEST).json({
@@ -187,6 +202,7 @@ const verifyPaystackPayment = async (req, res) => {
       cashGiven: paymentData.amount / 100,
       change: 0,
       paymentReference,
+      customerId,
     });
 
     const totalAmount = await processSaleItems(items, sale.id);
@@ -199,6 +215,13 @@ const verifyPaystackPayment = async (req, res) => {
 
     sale.totalAmount = totalAmount;
     await sale.save();
+
+    /* =========================
+   ADD LOYALTY POINTS
+========================= */
+    if (customerId) {
+      await addLoyaltyPoints(customerId, totalAmount);
+    }
 
     res.status(StatusCodes.CREATED).json({
       msg: "Payment verified and sale completed",
@@ -224,7 +247,12 @@ const getAllSales = async (req, res) => {
           model: SalesItem,
           include: [Product],
         },
+        {
+          model: Customer,
+          attributes: ["id", "fullName", "loyaltyPoints"],
+        },
       ],
+      order: [["createdAt", "DESC"]],
     });
 
     const totalSales = await Sale.count();
@@ -257,14 +285,22 @@ const getAllSalesMade = async (req, res) => {
           model: SalesItem,
           include: [Product],
         },
+        {
+          model: Customer,
+          attributes: ["id", "fullName", "loyaltyPoints"],
+        },
       ],
+      order: [["createdAt", "DESC"]],
     });
 
     const totalSales = await Sale.count({
       where: { createdBy: cashierId },
     });
 
-    const totalRevenue = sales.reduce((acc, sale) => acc + sale.totalAmount, 0);
+    const totalRevenue = sales.reduce(
+      (acc, sale) => acc + Number(sale.totalAmount || 0),
+      0,
+    );
 
     res.status(StatusCodes.OK).json({
       totalSales,

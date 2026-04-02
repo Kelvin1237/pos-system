@@ -26,6 +26,8 @@ import { loader as salesLoader } from "./pages/Sales";
 import { loader as productsLoader } from "./pages/Products";
 import { loader as usersLoader } from "./pages/Users";
 import { loader as posLoader } from "./pages/POS";
+import { loader as customersLoader } from "./pages/Customers";
+import Customers from "./pages/Customers";
 
 const router = createBrowserRouter([
   {
@@ -75,6 +77,11 @@ const router = createBrowserRouter([
             path: "sales",
             element: <Sales />,
             loader: salesLoader,
+          },
+          {
+            path: "customers",
+            element: <Customers />,
+            loader: customersLoader,
           },
           {
             path: "my-sales",

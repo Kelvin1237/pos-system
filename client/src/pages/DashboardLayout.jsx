@@ -73,6 +73,13 @@ const DashboardLayout = () => {
                   Sales
                 </NavLink>
                 <NavLink
+                  to="/dashboard/customers"
+                  className="sidebar-link"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Customers
+                </NavLink>
+                <NavLink
                   to="/dashboard/users"
                   className="sidebar-link"
                   onClick={() => setIsSidebarOpen(false)}

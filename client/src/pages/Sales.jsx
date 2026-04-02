@@ -26,10 +26,12 @@ const Sales = () => {
             <tr>
               <th>Reference</th>
               <th>Date</th>
+              <th>Customer</th>
               <th>Total</th>
               <th>Payment</th>
               <th>Cash</th>
               <th>Change</th>
+              <th>Points Earned</th>
             </tr>
           </thead>
 
@@ -45,6 +47,10 @@ const Sales = () => {
                 const formattedDate = sale?.createdAt
                   ? dayjs(sale.createdAt).format("YYYY-MM-DD")
                   : "N/A";
+
+                const pointsEarned = Math.floor(
+                  Number(sale?.totalAmount || 0) / 10,
+                );
                 return (
                   <tr key={sale?.id || Math.random()}>
                     <td>
@@ -59,6 +65,7 @@ const Sales = () => {
                         ? parseFloat(sale.totalAmount).toFixed(2)
                         : "0.00"}
                     </td>
+                    <td>{sale?.Customer?.fullName || "Walk-in Customer"}</td>
                     <td>{sale?.paymentMethod || "N/A"}</td>
                     <td>
                       ₵
@@ -72,6 +79,7 @@ const Sales = () => {
                         ? parseFloat(sale.change).toFixed(2)
                         : "0.00"}
                     </td>
+                    <td>{sale?.Customer ? `${pointsEarned} pts` : "-"}</td>
                   </tr>
                 );
               })

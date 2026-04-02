@@ -56,6 +56,22 @@ const validateLoginInput = withValidationErrors([
     ),
 ]);
 
+const validateRegisterCustomerInput = withValidationErrors([
+  body("email")
+    .trim()
+    .notEmpty()
+    .withMessage("email is required")
+    .isEmail()
+    .withMessage("invalid email"),
+  body("phone")
+    .trim()
+    .notEmpty()
+    .withMessage("phone number is required")
+    .isMobilePhone("en-GH")
+    .withMessage("invalid phone number"),
+  body("fullName").trim().notEmpty().withMessage("full name is required"),
+]);
+
 const validateProductInput = withValidationErrors([
   body("name").trim().notEmpty().withMessage("Product name is required"),
 
@@ -153,4 +169,5 @@ module.exports = {
   validateUpdateProductInput,
   validateUpdateUserInput,
   validateResetPasswordInput,
+  validateRegisterCustomerInput,
 };

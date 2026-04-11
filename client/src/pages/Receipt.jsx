@@ -6,49 +6,62 @@ import { useDashboardContext } from "./DashboardLayout";
 
 const Receipt = () => {
   const [sale, setSale] = useState(null);
+  const [loading, setLoading] = useState(true);
   const { user } = useDashboardContext();
 
   useEffect(() => {
     const fetchLatestSale = async () => {
       try {
+        setLoading(true);
+
         const { data } = await customFetch.get("/sales/my-sales");
 
-        // Handle possible response formats
-        const sales = data?.sales || data || [];
+        const sales = Array.isArray(data?.sales) ? data.sales : [];
 
-        if (!Array.isArray(sales) || sales.length === 0) return;
+        if (sales.length === 0) {
+          setSale(null);
+          return;
+        }
 
-        // Get latest sale (last item)
-        const latestSale = sales[sales.length - 1];
-        setSale(latestSale);
+        // ✅ Sort newest first
+        const sortedSales = [...sales].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+        );
+
+        setSale(sortedSales[0]);
       } catch (error) {
-        console.error("Failed to fetch sales:", error);
+        console.error("Failed to fetch latest sale:", error);
+        setSale(null);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchLatestSale();
   }, []);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     const input = document.getElementById("receipt");
     if (!input) return;
 
-    html2canvas(input)
-      .then((canvas) => {
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "mm", "a4");
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    try {
+      const canvas = await html2canvas(input);
+      const imgData = canvas.toDataURL("image/png");
 
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`receipt-${sale?.id || "latest"}.pdf`);
-      })
-      .catch((err) => {
-        console.error("Failed to generate PDF:", err);
-      });
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgProps = pdf.getImageProperties(imgData);
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`receipt-${sale?.id || "latest"}.pdf`);
+    } catch (error) {
+      console.error("Failed to download receipt:", error);
+    }
   };
 
+  if (loading) return <p>Loading receipt...</p>;
   if (!sale) return <p>No sale found!</p>;
 
   return (
@@ -119,10 +132,12 @@ const Receipt = () => {
             ? Number(sale.totalAmount).toFixed(2)
             : "0.00"}
         </p>
+
         <p>
           {sale?.paymentMethod === "CASH" ? "Cash Given" : "Amount Paid"}: ₵
           {sale?.cashGiven != null ? Number(sale.cashGiven).toFixed(2) : "0.00"}
         </p>
+
         <p>
           Change: ₵
           {sale?.change != null ? Number(sale.change).toFixed(2) : "0.00"}
@@ -130,7 +145,7 @@ const Receipt = () => {
       </div>
 
       <div className="receipt-btn-div">
-        <button className="btn-download" onClick={window.print}>
+        <button className="btn-download" onClick={() => window.print()}>
           Print PDF
         </button>
 
